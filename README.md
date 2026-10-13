@@ -102,17 +102,6 @@ Every app has to answer two questions:
 
 ---
 
-## Prerequisites
-
-- An Okta org with **API Access Management** (the free Integrator plan includes the `default` authorization server)
-- Python 3.9+
-- Test users and groups in Okta. This lab uses:
-  - `alex.eng@yourlabdomain.com`: member of **Dept-Engineering**, enrolled in Okta Verify
-  - `sam.eng@yourlabdomain.com`: **not** assigned to the app (used for the negative test)
-- The user profile attribute `department` set (Alex: `Engineering`)
-
----
-
 ## Step 1: Configure the authorization server
 
 **Okta Admin → Security → API → Authorization Servers → `default`**
@@ -124,7 +113,7 @@ Note the **Issuer URI** and the **Audience**:
 | Issuer | `https://integrator-1703499.okta.com/oauth2/default` |
 | Audience | `api://default` |
 
-![Authorization server settings](screenshots/01-auth-server-settings.png)
+<img width="1135" height="643" alt="Screenshot 2026-10-13 at 17 11 27" src="https://github.com/user-attachments/assets/e763a9dc-a9f2-4d93-8d58-e35640db9035" />
 
 ### 1a. Add a custom scope
 
@@ -136,7 +125,7 @@ Note the **Issuer URI** and the **Audience**:
 | Description | Read reports |
 | User consent | Implicit |
 
-![Add reports:read scope](screenshots/02-add-scope.png)
+<img width="705" height="658" alt="Screenshot 2026-10-13 at 17 12 53" src="https://github.com/user-attachments/assets/ee8bee67-d1ed-4b2f-a7e0-adc9031a365d" />
 
 ### 1b. Add a custom claim
 
@@ -150,14 +139,15 @@ Note the **Issuer URI** and the **Audience**:
 | Value | `user.department` |
 | Include in | Any scope |
 
-![Add department claim](screenshots/03-add-claim.png)
+<img width="696" height="552" alt="Screenshot 2026-10-13 at 17 14 40" src="https://github.com/user-attachments/assets/d31a2675-6aa0-42b9-825d-2df3fccb7710" />
 
 ### 1c. Check the access policy
 
 **Access Policies tab:** the **Default Policy** is assigned to **All Clients**, with a **Default Rule** that allows the **Authorization Code** grant and **any scopes**.
 
-![Access policies](screenshots/04-access-policy.png)
-![Default rule](screenshots/05-default-rule.png)
+<img width="1003" height="600" alt="Screenshot 2026-10-13 at 17 17 10" src="https://github.com/user-attachments/assets/e464c8c9-a15c-4ea9-adf0-a68b71bcab7f" />
+
+<img width="698" height="657" alt="Screenshot 2026-10-13 at 17 17 32" src="https://github.com/user-attachments/assets/b8a73a23-83ee-48a7-a026-7edfd5ece008" />
 
 ---
 
@@ -167,7 +157,8 @@ Note the **Issuer URI** and the **Audience**:
 
 A *Web Application* is a server-side app that can keep a client secret safe, which is what Flask is.
 
-![Create app integration](screenshots/06-create-app-integration.png)
+<img width="794" height="591" alt="Screenshot 2026-10-13 at 17 18 58" src="https://github.com/user-attachments/assets/7f5c9a42-1b4f-4477-8874-03a15164a91c" />
+
 
 ### General settings
 
@@ -179,8 +170,10 @@ A *Web Application* is a server-side app that can keep a client secret safe, whi
 | Sign-in redirect URI | `http://localhost:8080/authorization-code/callback` |
 | Sign-out redirect URI | `http://localhost:8080/` |
 
-![General settings](screenshots/07-general-settings.png)
-![Redirect URIs](screenshots/08-redirect-uris.png)
+<img width="936" height="603" alt="Screenshot 2026-10-13 at 17 21 34" src="https://github.com/user-attachments/assets/25518ca9-bad2-474d-b974-c1c84c51078f" />
+
+<img width="909" height="604" alt="Screenshot 2026-10-13 at 17 22 14" src="https://github.com/user-attachments/assets/f9d6f193-05ab-49e2-a467-295122807443" />
+
 
 > Port **8080** is used instead of 5000 because macOS AirPlay Receiver takes port 5000.
 
@@ -190,13 +183,13 @@ A *Web Application* is a server-side app that can keep a client secret safe, whi
 
 Only members of this group can sign in to the app. Step 8 tests this.
 
-![Assignments](screenshots/09-assignments.png)
+<img width="888" height="370" alt="Screenshot 2026-10-13 at 17 22 29" src="https://github.com/user-attachments/assets/47dc3192-d7b5-4d6c-b207-3de589f22d5e" />
 
 ### Client credentials
 
 After saving, copy the **Client ID** and **Client Secret** from the **General** tab. The secret is a password. Never commit it.
 
-![Client credentials](screenshots/10-client-credentials.png)
+<img width="724" height="601" alt="Screenshot 2026-10-13 at 17 34 51" src="https://github.com/user-attachments/assets/e511aeb5-bb90-4b3a-a974-73fcd8cc6cf0" />
 
 > Optional hardening: check **Require PKCE as additional verification**.
 
@@ -211,7 +204,7 @@ cd ~/Downloads
 pip3 install flask requests "pyjwt[crypto]"
 ```
 
-![pip install](screenshots/11-pip-install.png)
+<img width="563" height="327" alt="Screenshot 2026-10-13 at 17 26 00" src="https://github.com/user-attachments/assets/2a274593-2386-41a0-a6f3-64f1d62abcae" />
 
 Set the configuration as environment variables (never hard-code the secret) and start the app:
 
@@ -222,7 +215,7 @@ export OKTA_CLIENT_SECRET="<your-client-secret>"
 python3 oidc_lab.py
 ```
 
-![Environment variables](screenshots/12-env-vars.png)
+<img width="576" height="165" alt="Screenshot 2026-10-13 at 17 38 17" src="https://github.com/user-attachments/assets/86ad5cad-2bb9-4df9-8a90-41b94b48c778" />
 
 The app prints its configuration and starts on port 8080:
 
@@ -235,9 +228,7 @@ API audience:  api://default   required scope: reports:read
 Open:          http://localhost:8080
 ```
 
-![App started](screenshots/13-app-started.png)
-
-> The `NotOpenSSLWarning` from urllib3 comes from macOS's built-in Python using LibreSSL. It is harmless for this lab.
+<img width="562" height="280" alt="Screenshot 2026-10-13 at 17 36 44" src="https://github.com/user-attachments/assets/04df4b9a-bbc9-4920-b969-9db58b08642d" />
 
 ---
 
@@ -246,11 +237,11 @@ Open:          http://localhost:8080
 1. Open a private browser window and go to `http://localhost:8080`.
 2. Click **Sign in with Okta (with reports:read)**.
 
-![App home page](screenshots/14-app-home.png)
+<img width="1060" height="562" alt="Screenshot 2026-10-13 at 17 40 34" src="https://github.com/user-attachments/assets/b5eb69f7-6a1f-4049-99db-bb9d1b813605" />
 
 3. The app redirects to Okta. Sign in as `alex.eng@yourlabdomain.com` and enter the **Okta Verify** code.
 
-![Okta MFA prompt](screenshots/15-okta-mfa.png)
+<img width="626" height="535" alt="Screenshot 2026-10-13 at 17 43 16" src="https://github.com/user-attachments/assets/c26234e9-ee65-44f1-91ac-5d780135ff67" />
 
 4. Okta redirects back to the app's callback with a one-time code. The app exchanges the code for tokens and shows the signed-in page.
 
@@ -262,7 +253,7 @@ Click **Tokens**. The page decodes both JWTs and explains every claim. Both are 
 
 ### ID token: who the user is (OIDC)
 
-![ID token claims](screenshots/16-id-token.png)
+<img width="1191" height="664" alt="Screenshot 2026-10-13 at 17 44 56" src="https://github.com/user-attachments/assets/5f546c4d-f0f3-44ac-9285-f1fd9ddcc835" />
 
 | Claim | Value | Why it matters |
 |---|---|---|
@@ -275,7 +266,7 @@ Click **Tokens**. The page decodes both JWTs and explains every claim. Both are 
 
 ### Access token: what the app may do (OAuth 2.0)
 
-![Access token claims](screenshots/17-access-token.png)
+<img width="923" height="528" alt="Screenshot 2026-10-13 at 17 49 19" src="https://github.com/user-attachments/assets/0cf32529-cb83-471d-a442-2ba7404201f6" />
 
 | Claim | Value | Why it matters |
 |---|---|---|
@@ -300,8 +291,10 @@ Click **API tests**. The app calls its own `GET /api/reports` endpoint four ways
 | 3 | Tampered access token | **401** | `Signature verification failed` |
 | 4 | Real access token | **200** | `Access granted to protected reports API` |
 
-![API tests 401s](screenshots/18-api-tests-401.png)
-![API test 200](screenshots/19-api-test-200.png)
+<img width="1029" height="538" alt="Screenshot 2026-10-13 at 17 49 44" src="https://github.com/user-attachments/assets/c93d9164-e49c-4459-b088-0210f5fc8123" />
+
+<img width="1008" height="410" alt="Screenshot 2026-10-13 at 17 49 55" src="https://github.com/user-attachments/assets/17e47cce-e34b-4115-be1f-fd26d03a91bf" />
+
 
 The successful response returns the caller, the `department` claim, the granted scopes, and the report data:
 
@@ -332,11 +325,11 @@ The successful response returns the caller, the `department` claim, the granted 
 1. Click **Sign out**.
 2. Click **Sign in without reports:read** and sign in again as Alex.
 
-![Sign in without scope](screenshots/20-sign-in-without-scope.png)
+<img width="1008" height="544" alt="Screenshot 2026-10-13 at 17 50 58" src="https://github.com/user-attachments/assets/e67c82d5-6979-4780-bd15-c467aa528d96" />
 
 3. Run the API tests again. Tests 1–3 still return 401, but **test 4 now returns 403 `insufficient_scope`**. The token is genuine and valid; it just doesn't carry the permission.
 
-![API test 403](screenshots/21-api-test-403.png)
+<img width="1063" height="649" alt="Screenshot 2026-10-13 at 17 52 05" src="https://github.com/user-attachments/assets/86ae4a81-3601-4de6-ad0a-12027b64f674" />
 
 ---
 
@@ -344,11 +337,11 @@ The successful response returns the caller, the `department` claim, the granted 
 
 The app is assigned only to **Dept-Engineering** (Step 2). Signing in as `sam.eng@yourlabdomain.com`, who is not assigned to the app:
 
-![Sign in as Sam](screenshots/22-sign-in-sam.png)
+<img width="865" height="635" alt="Screenshot 2026-10-13 at 17 54 33" src="https://github.com/user-attachments/assets/576e81bc-be00-42d2-b961-d2c2f720d12c" />
 
 Okta refuses at the authorization server, with **`access_denied`: User is not assigned to the client application**. No code and no tokens are ever issued, so the app and the API never see the request.
 
-![User not assigned](screenshots/23-user-not-assigned.png)
+<img width="578" height="572" alt="Screenshot 2026-10-13 at 17 55 17" src="https://github.com/user-attachments/assets/30ef66ab-72c0-4e3a-ab01-6d5af8877c3d" />
 
 **Why this matters:** access is decided **centrally in Okta**, not inside each app. Removing a user from the group removes their access everywhere the group is used.
 
@@ -377,8 +370,9 @@ The app logs each stage: `LOGIN` (redirect to Okta), `CALLBACK` (code received),
 17:51:54  API      403 insufficient_scope: Token lacks required scope reports:read
 ```
 
-![Terminal log part 1](screenshots/24-terminal-log-1.png)
-![Terminal log part 2](screenshots/25-terminal-log-2.png)
+<img width="563" height="298" alt="Screenshot 2026-10-13 at 17 56 28" src="https://github.com/user-attachments/assets/466c77fb-f794-49bd-a65a-6edc9332e99b" />
+
+<img width="563" height="343" alt="Screenshot 2026-10-13 at 17 56 05" src="https://github.com/user-attachments/assets/df5a0172-8118-4865-92f8-69d25f9b1323" />
 
 ---
 
