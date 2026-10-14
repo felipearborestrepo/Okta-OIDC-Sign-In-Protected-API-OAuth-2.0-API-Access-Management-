@@ -104,6 +104,8 @@ Every app has to answer two questions:
 
 ## Step 1: Configure the authorization server
 
+**Goal:** prepare the token "factory." Before any app can request a `reports:read` permission, the authorization server has to know that permission exists and what to put in the tokens it issues.
+
 **Okta Admin → Security → API → Authorization Servers → `default`**
 
 Note the **Issuer URI** and the **Audience**:
@@ -115,6 +117,7 @@ Note the **Issuer URI** and the **Audience**:
 
 <img width="1135" height="643" alt="Screenshot 2026-10-13 at 17 11 27" src="https://github.com/user-attachments/assets/e763a9dc-a9f2-4d93-8d58-e35640db9035" />
 
+> **Why a custom authorization server and not the org one?** The org authorization server (`https://<org>.okta.com`) issues tokens meant only for Okta's own APIs. You can't add your own scopes or claims to it. The `default` custom authorization server is the one meant for protecting **your** APIs.
 ### 1a. Add a custom scope
 
 **Scopes tab → Add Scope**
@@ -374,21 +377,6 @@ The app logs each stage: `LOGIN` (redirect to Okta), `CALLBACK` (code received),
 
 <img width="563" height="343" alt="Screenshot 2026-10-13 at 17 56 05" src="https://github.com/user-attachments/assets/df5a0172-8118-4865-92f8-69d25f9b1323" />
 
----
-
-## Results summary
-
-| Scenario | Expected | Actual |
-|---|---|---|
-| Sign in with MFA | ID + access token issued | ✅ `amr` includes `mfa`, `okta_verify` |
-| Custom scope in access token | `reports:read` in `scp` | ✅ |
-| Custom claim in access token | `department: Engineering` | ✅ |
-| API: no token | 401 | ✅ 401 |
-| API: ID token | 401 (wrong audience) | ✅ 401 |
-| API: tampered token | 401 (bad signature) | ✅ 401 |
-| API: valid token with scope | 200 | ✅ 200 |
-| API: valid token without scope | 403 | ✅ 403 |
-| User not assigned to app | Login blocked | ✅ 400 `access_denied` |
 
 ---
 
@@ -408,18 +396,6 @@ It verifies the signature with Okta's public keys (JWKS), then checks the issuer
 
 **Why use the Authorization Code flow and PKCE?**
 Tokens never pass through the browser URL. Only a one-time code does, and it's exchanged server-side with the client secret. PKCE adds a code verifier only the app knows, so an intercepted code can't be redeemed.
-
-**Where should access decisions live?**
-Centrally in the identity provider. Group-based app assignment blocked an unassigned user before any token existed.
-
----
-
-## Security notes
-
-- The client secret is passed through an environment variable and is **never committed**. Add a `.gitignore` for any `.env` file.
-- Screenshots have the client secret redacted. If a secret is ever exposed, rotate it in Okta (**Generate new secret**, then deactivate the old one).
-- The Flask development server is for local testing only, not production.
-- Possible next steps: enable **Require PKCE**, add **refresh tokens**, and move scope decisions into an authorization server **access policy rule**.
 
 ---
 
