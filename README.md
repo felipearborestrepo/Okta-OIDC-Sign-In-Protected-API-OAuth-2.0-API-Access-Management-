@@ -130,6 +130,8 @@ Note the **Issuer URI** and the **Audience**:
 
 <img width="705" height="658" alt="Screenshot 2026-10-13 at 17 12 53" src="https://github.com/user-attachments/assets/ee8bee67-d1ed-4b2f-a7e0-adc9031a365d" />
 
+**Why:** a scope is a named permission. The app asks for it at login, Okta decides whether to grant it, and the granted scopes are listed in the access token's `scp` claim. The API then checks for `reports:read` before returning data. The `resource:action` naming style keeps permissions clear as an API grows (for example `reports:write` later).
+
 ### 1b. Add a custom claim
 
 **Claims tab → Add Claim**
@@ -144,6 +146,12 @@ Note the **Issuer URI** and the **Audience**:
 
 <img width="696" height="552" alt="Screenshot 2026-10-13 at 17 14 40" src="https://github.com/user-attachments/assets/d31a2675-6aa0-42b9-825d-2df3fccb7710" />
 
+**Why:** claims let the API make decisions without a separate lookup. By copying the user's `department` profile attribute into the access token, the API can know "this caller is in Engineering" just by reading the token.
+
+- `user.department` is **Okta Expression Language**: it reads the `department` attribute from the user's Okta profile at the moment the token is issued.
+- **Access Token, Always** means the claim goes to the API, not just the app.
+- **Any scope** means it's included no matter which scopes were requested.
+
 ### 1c. Check the access policy
 
 **Access Policies tab:** the **Default Policy** is assigned to **All Clients**, with a **Default Rule** that allows the **Authorization Code** grant and **any scopes**.
@@ -152,9 +160,13 @@ Note the **Issuer URI** and the **Audience**:
 
 <img width="698" height="657" alt="Screenshot 2026-10-13 at 17 17 32" src="https://github.com/user-attachments/assets/b8a73a23-83ee-48a7-a026-7edfd5ece008" />
 
+An authorization server will **not issue any token** unless an access policy allows it. A policy decides *which clients* it applies to, and its rules decide *which grant types, users, and scopes* are allowed, plus token lifetimes.
+
 ---
 
 ## Step 2: Create the OIDC app in Okta
+
+**Goal:** register the Flask app with Okta as a **client**, so Okta knows who is asking for tokens, where it's allowed to send users back, and who may use it.
 
 **Applications → Create App Integration → OIDC - OpenID Connect → Web Application → Next**
 
@@ -162,7 +174,8 @@ A *Web Application* is a server-side app that can keep a client secret safe, whi
 
 <img width="794" height="591" alt="Screenshot 2026-10-13 at 17 18 58" src="https://github.com/user-attachments/assets/7f5c9a42-1b4f-4477-8874-03a15164a91c" />
 
-
+- **OIDC** rather than SAML: this lab needs tokens an API can check (JWT access tokens). SAML handles sign-in for web apps but doesn't give you OAuth access tokens for APIs.
+- **Web Application** rather than Single-Page App or Native: the Flask app runs on a server, so it can safely keep a **client secret**. Browser-only (SPA) and mobile apps can't hide a secret, so they rely on PKCE alone.
 ### General settings
 
 | Field | Value |
@@ -177,6 +190,7 @@ A *Web Application* is a server-side app that can keep a client secret safe, whi
 
 <img width="909" height="604" alt="Screenshot 2026-10-13 at 17 22 14" src="https://github.com/user-attachments/assets/f9d6f193-05ab-49e2-a467-295122807443" />
 
+**Why this matters:** Okta will only send the authorization code to a URI on this list. That stops an attacker from crafting a login link that delivers the code to *their* site. The URI must match **exactly**, including port and path, or Okta returns a `redirect_uri` error.
 
 > Port **8080** is used instead of 5000 because macOS AirPlay Receiver takes port 5000.
 
@@ -187,6 +201,8 @@ A *Web Application* is a server-side app that can keep a client secret safe, whi
 Only members of this group can sign in to the app. Step 8 tests this.
 
 <img width="888" height="370" alt="Screenshot 2026-10-13 at 17 22 29" src="https://github.com/user-attachments/assets/47dc3192-d7b5-4d6c-b207-3de589f22d5e" />
+
+**Why:** this is the first layer of access control. Only members of Dept-Engineering can sign in to the app at all. Anyone else is stopped by Okta before a token exists (tested in Step 8). Assigning to groups instead of individual users means access follows group membership automatically when people join or leave.
 
 ### Client credentials
 
@@ -199,6 +215,9 @@ After saving, copy the **Client ID** and **Client Secret** from the **General** 
 ---
 
 ## Step 3: Run the app
+
+
+**Goal:** start the Flask app locally with the Okta settings
 
 Install the dependencies:
 
@@ -220,6 +239,8 @@ python3 oidc_lab.py
 
 <img width="576" height="165" alt="Screenshot 2026-10-13 at 17 38 17" src="https://github.com/user-attachments/assets/86ad5cad-2bb9-4df9-8a90-41b94b48c778" />
 
+**Why environment variables:** the secret stays out of the source code, so the code can be pushed to GitHub safely. The same code can run against a different Okta org just by changing the variables.
+
 The app prints its configuration and starts on port 8080:
 
 ```
@@ -233,9 +254,13 @@ Open:          http://localhost:8080
 
 <img width="562" height="280" alt="Screenshot 2026-10-13 at 17 36 44" src="https://github.com/user-attachments/assets/04df4b9a-bbc9-4920-b969-9db58b08642d" />
 
+**What to check:** the issuer, client ID, and redirect URI must match exactly what's in Okta. The last line confirms what the API will demand: audience `api://default` and scope `reports:read`. Leave this terminal open; it shows a live log of every step.
+
 ---
 
 ## Step 4: Sign in with MFA
+
+**Goal:** run the full Authorization Code flow as a real user and receive tokens.
 
 1. Open a private browser window and go to `http://localhost:8080`.
 2. Click **Sign in with Okta (with reports:read)**.
@@ -246,11 +271,15 @@ Open:          http://localhost:8080
 
 <img width="626" height="535" alt="Screenshot 2026-10-13 at 17 43 16" src="https://github.com/user-attachments/assets/c26234e9-ee65-44f1-91ac-5d780135ff67" />
 
+**Why this matters:** the user types the password and MFA code **only into Okta**, never into the app. The app never handles credentials, and the sign-on policy (including MFA) is enforced by Okta in one place for every app.
+
 4. Okta redirects back to the app's callback with a one-time code. The app exchanges the code for tokens and shows the signed-in page.
 
 ---
 
 ## Step 5: Inspect the tokens
+
+**Goal:** see exactly what Okta put in each token and understand why they're different.
 
 Click **Tokens**. The page decodes both JWTs and explains every claim. Both are signed by Okta with RS256.
 
@@ -285,6 +314,8 @@ Click **Tokens**. The page decodes both JWTs and explains every claim. Both are 
 
 ## Step 6: Test the protected API
 
+**Goal:** prove the API only accepts genuine, correctly targeted access tokens.
+
 Click **API tests**. The app calls its own `GET /api/reports` endpoint four ways. The API validates **signature** (using Okta's public keys from the JWKS endpoint), **issuer**, **audience**, **expiry**, and **scope**.
 
 | # | Test | Result | API response |
@@ -298,6 +329,9 @@ Click **API tests**. The app calls its own `GET /api/reports` endpoint four ways
 
 <img width="1008" height="410" alt="Screenshot 2026-10-13 at 17 49 55" src="https://github.com/user-attachments/assets/17e47cce-e34b-4115-be1f-fd26d03a91bf" />
 
+**Why test 2 matters:** the ID token is genuine, signed by Okta, and not expired. Signature checks alone would accept it. Only the **audience check** catches it. Skipping the audience check is a common real-world bug that lets a token meant for one app unlock another.
+
+**Why test 3 matters:** anyone can decode a JWT and edit its contents (for example adding `reports:write` to `scp`). The signature is what makes that useless: the API detects the change and rejects the token.
 
 The successful response returns the caller, the `department` claim, the granted scopes, and the report data:
 
@@ -325,6 +359,8 @@ The successful response returns the caller, the `department` claim, the granted 
 
 ## Step 7: Missing scope returns 403
 
+**Goal:** show that a valid, authenticated user still can't use the API without the right permission.
+
 1. Click **Sign out**.
 2. Click **Sign in without reports:read** and sign in again as Alex.
 
@@ -334,9 +370,15 @@ The successful response returns the caller, the `department` claim, the granted 
 
 <img width="1063" height="649" alt="Screenshot 2026-10-13 at 17 52 05" src="https://github.com/user-attachments/assets/86ae4a81-3601-4de6-ad0a-12027b64f674" />
 
+**What happened:** it's the same user, same MFA, and a perfectly valid token. Its signature, issuer, audience, and expiry all pass. The only difference is that `scp` no longer contains `reports:read`, because the app didn't ask for it and Okta didn't grant it. The API therefore knows *who* is calling but refuses the action.
+
+**Why this matters:** this is **least privilege at the API level**. Apps should request only the scopes they need, and APIs should check for a specific scope on every endpoint rather than accepting any valid token.
+
 ---
 
 ## Step 8: Least privilege with group assignment
+
+**Goal:** show that Okta can block a user centrally, before the app or the API is ever involved.
 
 The app is assigned only to **Dept-Engineering** (Step 2). Signing in as `sam.eng@yourlabdomain.com`, who is not assigned to the app:
 
@@ -345,6 +387,8 @@ The app is assigned only to **Dept-Engineering** (Step 2). Signing in as `sam.en
 Okta refuses at the authorization server, with **`access_denied`: User is not assigned to the client application**. No code and no tokens are ever issued, so the app and the API never see the request.
 
 <img width="578" height="572" alt="Screenshot 2026-10-13 at 17 55 17" src="https://github.com/user-attachments/assets/30ef66ab-72c0-4e3a-ab01-6d5af8877c3d" />
+
+**What happened:** after Sam authenticated, Okta checked whether he is assigned to *My Web App*. He isn't, so Okta stopped at the authorization step and **never issued a code or any tokens**. The app never sees a request, and the API is never called.
 
 **Why this matters:** access is decided **centrally in Okta**, not inside each app. Removing a user from the group removes their access everywhere the group is used.
 
